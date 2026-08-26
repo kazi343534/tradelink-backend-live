@@ -55,6 +55,13 @@ class MarketplaceProductModel {
     return fallback;
   }
 
+  static String? _fixImageUrl(String? url) {
+    if (url == null || url.isEmpty) return null;
+    url = url.replaceAll('tradelink-2.onrender.com', 'tradelink-backend-live.onrender.com');
+    if (url.startsWith('http://')) url = 'https://${url.substring(7)}';
+    return url;
+  }
+
   factory MarketplaceProductModel.fromJson(Map<String, dynamic> json) {
     return MarketplaceProductModel(
       stockId: json['stockId'] as String? ?? json['stock_id'] as String? ?? '',
@@ -69,7 +76,7 @@ class MarketplaceProductModel {
       pricePerUnit: _toDouble(json['pricePerUnit'] ?? json['price_per_unit']),
       quantityAvailable: _toDouble(json['quantityAvailable'] ?? json['quantity_available']),
       unit: json['unit'] as String? ?? 'pcs',
-      imageUrl: (json['imageUrl'] as String? ?? json['image_url'] as String?)?.replaceFirst('http://tradelink-backend-live.onrender.com', 'https://tradelink-backend-live.onrender.com').replaceFirst('tradelink-2.onrender.com', 'tradelink-backend-live.onrender.com'),
+      imageUrl: _fixImageUrl(json['imageUrl'] as String? ?? json['image_url'] as String?),
       deliveryRadiusKm: _toInt(json['deliveryRadiusKm'] ?? json['delivery_radius_km'], 50),
       distanceKm: _toDouble(json['distanceKm'] ?? json['distance_km']),
       priceDifference: _toDouble(json['priceDifference'] ?? json['price_difference']),

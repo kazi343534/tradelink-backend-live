@@ -56,7 +56,7 @@ class SupplierResult {
       stockBadge: json['stockBadge'] as String? ?? 'In stock',
       inStock: json['inStock'] as bool? ?? true,
       isBestPrice: json['isBestPrice'] as bool? ?? false,
-      imageUrl: (json['imageUrl'] as String?)?.replaceFirst('http://tradelink-backend-live.onrender.com', 'https://tradelink-backend-live.onrender.com').replaceFirst('tradelink-2.onrender.com', 'tradelink-backend-live.onrender.com'),
+      imageUrl: _fixImageUrl(json['imageUrl'] as String?),
       stockId: json['stockId'] as String?,
       stockholderId: json['stockholderId'] as String? ?? json['stockholder_id'] as String? ?? '',
       productName: (json['productName'] as String?) ??
@@ -80,6 +80,13 @@ class SupplierResult {
     if (value is num) return value.toInt();
     if (value is String) return int.tryParse(value) ?? fallback;
     return fallback;
+  }
+
+  static String? _fixImageUrl(String? url) {
+    if (url == null || url.isEmpty) return null;
+    url = url.replaceAll('tradelink-2.onrender.com', 'tradelink-backend-live.onrender.com');
+    if (url.startsWith('http://')) url = 'https://${url.substring(7)}';
+    return url;
   }
 
   String get priceLabel => '৳${price.toStringAsFixed(0)} / $unit';

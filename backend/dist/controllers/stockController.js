@@ -93,11 +93,12 @@ export const deleteStockHandler = asyncHandler(async (req, res) => {
 });
 /** One-time: rewrite all image_url from old host to new host. */
 export const fixImageUrlsHandler = asyncHandler(async (_req, res) => {
-    const oldHost = 'tradelink-2.onrender.com';
-    const newHost = 'tradelink-backend-live.onrender.com';
-    const { rowCount } = await db.query(`UPDATE stockholder_inventory
+    const { rowCount: r1 } = await db.query(`UPDATE stockholder_inventory
      SET image_url = REPLACE(image_url, $1, $2)
-     WHERE image_url LIKE '%' || $1 || '%'`, [oldHost, newHost]);
-    res.json({ success: true, data: { updated: rowCount ?? 0 } });
+     WHERE image_url LIKE '%' || $1 || '%'`, ['tradelink-2.onrender.com', 'tradelink-backend-live.onrender.com']);
+    const { rowCount: r2 } = await db.query(`UPDATE stockholder_inventory
+     SET image_url = REPLACE(image_url, $1, $2)
+     WHERE image_url LIKE $1 || '%'`, ['http://tradelink-backend-live.onrender.com', 'https://tradelink-backend-live.onrender.com']);
+    res.json({ success: true, data: { hostFixed: r1 ?? 0, httpsFixed: r2 ?? 0 } });
 });
 //# sourceMappingURL=stockController.js.map
