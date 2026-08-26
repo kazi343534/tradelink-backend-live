@@ -200,7 +200,7 @@ class _DeliveryManHomeScreenState extends State<DeliveryManHomeScreen> with Widg
     if (res != null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Order picked up! OTP sent to shop owner.'),
+        content: Text('Order picked up! OTP sent to customer.'),
         backgroundColor: AppColors.primaryTeal,
       ));
       _fetchMyDeliveries();
@@ -249,13 +249,13 @@ class _DeliveryManHomeScreenState extends State<DeliveryManHomeScreen> with Widg
             const SizedBox(height: 24),
             _buildCompletionOption(
               ctx,
-              icon: Icons.sms_outlined,
-              title: 'Send OTP to Shop Owner',
-              subtitle: 'Shop owner receives a code to share with you',
+              icon: Icons.dialpad_rounded,
+              title: 'Enter OTP',
+              subtitle: 'Enter the code the customer received at pickup',
               color: AppColors.primaryTeal,
               onTap: () {
                 Navigator.pop(ctx);
-                _sendOtpAndVerify(orderId);
+                _enterOtpAndVerify(orderId);
               },
             ),
             const SizedBox(height: 12),
@@ -263,7 +263,7 @@ class _DeliveryManHomeScreenState extends State<DeliveryManHomeScreen> with Widg
               ctx,
               icon: Icons.qr_code_scanner,
               title: 'Scan QR Code',
-              subtitle: 'Scan the shop owner\'s QR code to confirm',
+              subtitle: 'Scan the customer\'s QR code to confirm',
               color: const Color(0xFF2563EB),
               onTap: () {
                 Navigator.pop(ctx);
@@ -333,110 +333,98 @@ class _DeliveryManHomeScreenState extends State<DeliveryManHomeScreen> with Widg
     }
   }
 
-  Future<void> _sendOtpAndVerify(String orderId) async {
-    setState(() => _isLoading = true);
-    final res = await ApiService.post('/orders/$orderId/send-otp', body: {});
-    setState(() => _isLoading = false);
+  Future<void> _enterOtpAndVerify(String orderId) async {
+    if (!mounted) return;
 
-    if (res != null) {
-      if (!mounted) return;
-      
-      final otpController = TextEditingController();
-      final otp = await showDialog<String>(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryTeal.withValues(alpha: 0.1),
+    final otpController = TextEditingController();
+    final otp = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryTeal.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.lock_outline, color: AppColors.primaryTeal, size: 26),
+              ),
+              const SizedBox(height: 16),
+              const Text('Enter OTP', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+              const SizedBox(height: 6),
+              const Text(
+                'Enter the 6-digit code the customer received',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: otpController,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 24, letterSpacing: 10, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  hintText: '------',
+                  counterText: '',
+                  filled: true,
+                  fillColor: AppColors.toggleBackground,
+                  border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
                   ),
-                  child: const Icon(Icons.lock_outline, color: AppColors.primaryTeal, size: 26),
-                ),
-                const SizedBox(height: 16),
-                const Text('Enter OTP', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                const SizedBox(height: 6),
-                const Text(
-                  'Enter the 6-digit code shared by the shop owner',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: otpController,
-                  keyboardType: TextInputType.number,
-                  maxLength: 6,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 24, letterSpacing: 10, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                  decoration: InputDecoration(
-                    hintText: '------',
-                    counterText: '',
-                    filled: true,
-                    fillColor: AppColors.toggleBackground,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppColors.primaryTeal, width: 2),
-                    ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: AppColors.primaryTeal, width: 2),
                   ),
                 ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.textSecondary,
-                          side: const BorderSide(color: AppColors.inputBorder),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: const Text('Cancel'),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.textSecondary,
+                        side: const BorderSide(color: AppColors.inputBorder),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
+                      child: const Text('Cancel'),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryTeal,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: () => Navigator.pop(ctx, otpController.text),
-                        child: const Text('Verify', style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryTeal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
+                      onPressed: () => Navigator.pop(ctx, otpController.text),
+                      child: const Text('Verify', style: TextStyle(fontWeight: FontWeight.w700)),
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
 
-      if (otp != null && otp.trim().isNotEmpty) {
-        _processOtp(orderId, otp);
-      }
-    } else {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Failed to send OTP.'),
-        backgroundColor: AppColors.cancelled,
-      ));
+    if (otp != null && otp.trim().isNotEmpty) {
+      _processOtp(orderId, otp);
     }
   }
 
