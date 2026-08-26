@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_categories.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/api_service.dart';
@@ -105,11 +107,21 @@ class _StockScreenState extends State<StockScreen> {
       ),
       builder: (ctx) => _EditStockSheet(
         stock: stock,
-        onSave: (updated) async {
+        onSave: (updated, imageBytes, imageFileName) async {
           final id = stock['id']?.toString();
           if (id == null) return;
 
-          final result = await ApiService.patch('/suppliers/stock/$id', body: updated);
+          dynamic result;
+          if (imageBytes != null && imageBytes.isNotEmpty) {
+            result = await ApiService.patchMultipart(
+              '/suppliers/stock/$id',
+              fields: updated.map((k, v) => MapEntry(k, v.toString())),
+              imageBytes: imageBytes,
+              imageFileName: imageFileName,
+            );
+          } else {
+            result = await ApiService.patch('/suppliers/stock/$id', body: updated);
+          }
           if (result != null && mounted) {
             final map = Map<String, dynamic>.from(result);
             setState(() {
@@ -483,7 +495,7 @@ class _StockItem extends StatelessWidget {
 
 class _EditStockSheet extends StatefulWidget {
   final Map<String, dynamic> stock;
-  final Future<void> Function(Map<String, dynamic> updated) onSave;
+  final Future<void> Function(Map<String, dynamic> updated, Uint8List? imageBytes, String? imageFileName) onSave;
 
   const _EditStockSheet({required this.stock, required this.onSave});
 
@@ -498,6 +510,9 @@ class _EditStockSheetState extends State<_EditStockSheet> {
   late String _selectedCategory;
   late String _selectedUnit;
   bool _isSaving = false;
+  Uint8List? _selectedImageBytes;
+  String _selectedImageName = '';
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -521,6 +536,59 @@ class _EditStockSheetState extends State<_EditStockSheet> {
     _priceController.dispose();
     _quantityController.dispose();
     super.dispose();
+  }
+
+  void _pickImage(ImageSource source) async {
+    final picked = await _picker.pickImage(source: source, imageQuality: 80);
+    if (picked != null) {
+      final bytes = await picked.readAsBytes();
+      setState(() {
+        _selectedImageBytes = bytes;
+        _selectedImageName = picked.name;
+      });
+    }
+  }
+
+  void _clearImage() {
+    setState(() {
+      _selectedImageBytes = null;
+      _selectedImageName = '';
+    });
+  }
+
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined),
+                title: const Text('Take photo'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Choose from gallery'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _handleSave() async {
@@ -547,7 +615,7 @@ class _EditStockSheetState extends State<_EditStockSheet> {
       'pricePerUnit': priceVal,
       'quantity': qtyVal,
       'unit': _selectedUnit,
-    });
+    }, _selectedImageBytes, _selectedImageName.isNotEmpty ? _selectedImageName : null);
 
     if (mounted) setState(() => _isSaving = false);
   }
@@ -609,6 +677,59 @@ class _EditStockSheetState extends State<_EditStockSheet> {
             _buildLabel('Product Name'),
             const SizedBox(height: 8),
             _buildTextField(controller: _nameController, hintText: 'Product name'),
+            const SizedBox(height: 16),
+            _buildLabel('Product Photo'),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: _selectedImageBytes != null ? null : _showImageSourceDialog,
+              child: Container(
+                height: 120,
+                width: double.infinity,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.inputBorder),
+                ),
+                child: _selectedImageBytes != null
+                    ? Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.memory(_selectedImageBytes!, fit: BoxFit.cover),
+                          ),
+                          Positioned(
+                            top: 6,
+                            right: 6,
+                            child: GestureDetector(
+                              onTap: _clearImage,
+                              child: Container(
+                                width: 26,
+                                height: 26,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFEF4444),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.cancel, color: Colors.white, size: 18),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.add_a_photo_outlined, size: 30, color: Color(0xFF0F766E)),
+                          SizedBox(height: 6),
+                          Text(
+                            'Tap to re-upload product photo',
+                            style: TextStyle(fontSize: 12.5, color: AppColors.textHint),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
             const SizedBox(height: 16),
             _buildLabel('Category'),
             const SizedBox(height: 8),

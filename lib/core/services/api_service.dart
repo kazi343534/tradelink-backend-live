@@ -131,6 +131,47 @@ class ApiService {
     }
   }
 
+  static Future<dynamic> patchMultipart(
+    String path, {
+    required Map<String, String> fields,
+    Uint8List? imageBytes,
+    String? imageFileName,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id') ?? '';
+      final uri = Uri.parse('$_baseUrl$path');
+      final request = http.MultipartRequest('PATCH', uri);
+      request.headers['X-User-Id'] = '$userId::supplier';
+      request.fields.addAll(fields);
+
+      if (imageBytes != null && imageBytes.isNotEmpty) {
+        final fileName = imageFileName ?? 'product.jpg';
+        final ext = fileName.split('.').last.toLowerCase();
+        final mime = ext == 'png' ? 'image/png' : ext == 'webp' ? 'image/webp' : 'image/jpeg';
+        request.files.add(http.MultipartFile.fromBytes(
+          'image',
+          imageBytes,
+          filename: fileName,
+          contentType: MediaType.parse(mime),
+        ));
+      }
+
+      debugPrint('[ApiService] PATCH multipart $uri fields=$fields hasImage=${imageBytes != null}');
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      debugPrint('[ApiService] PATCH multipart ${response.statusCode} ${response.body}');
+      final respBody = json.decode(response.body);
+      if ((response.statusCode == 200 || response.statusCode == 201) && respBody['success'] == true) {
+        return respBody['data'] ?? respBody;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[ApiService] PATCH multipart ERROR: $e');
+      return null;
+    }
+  }
+
   static Future<dynamic> delete(String path) async {
     try {
       final headers = await _headers();
