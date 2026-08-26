@@ -1164,7 +1164,7 @@ class _DirectOrderBottomSheetState extends State<_DirectOrderBottomSheet> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString('user_id') ?? '';
-      final uri = Uri.parse('https://tradelink-2.onrender.com/api/v1/orders/direct');
+      final uri = Uri.parse('https://tradelink-backend-live.onrender.com/api/v1/orders/direct');
 
       final response = await http.post(
         uri,

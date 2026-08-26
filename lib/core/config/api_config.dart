@@ -6,6 +6,6 @@
 class ApiConfig {
   static const String baseUrl = String.fromEnvironment(
     'API_URL',
-    defaultValue: 'https://tradelink-2.onrender.com/api/v1',
+    defaultValue: 'https://tradelink-backend-live.onrender.com/api/v1',
   );
 }

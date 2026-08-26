@@ -69,7 +69,7 @@ class MarketplaceProductModel {
       pricePerUnit: _toDouble(json['pricePerUnit'] ?? json['price_per_unit']),
       quantityAvailable: _toDouble(json['quantityAvailable'] ?? json['quantity_available']),
       unit: json['unit'] as String? ?? 'pcs',
-      imageUrl: (json['imageUrl'] as String? ?? json['image_url'] as String?)?.replaceFirst('http://tradelink-2.onrender.com', 'https://tradelink-2.onrender.com'),
+      imageUrl: (json['imageUrl'] as String? ?? json['image_url'] as String?)?.replaceFirst('http://tradelink-backend-live.onrender.com', 'https://tradelink-backend-live.onrender.com'),
       deliveryRadiusKm: _toInt(json['deliveryRadiusKm'] ?? json['delivery_radius_km'], 50),
       distanceKm: _toDouble(json['distanceKm'] ?? json['distance_km']),
       priceDifference: _toDouble(json['priceDifference'] ?? json['price_difference']),
