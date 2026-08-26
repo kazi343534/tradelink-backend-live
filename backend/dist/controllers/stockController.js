@@ -1,10 +1,11 @@
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { createStockSchema } from '../middleware/validation.js';
 import { createStock, listStock, updateStock, deleteStock, saveStockImage } from '../services/stockService.js';
+import { db } from '../db/pool.js';
 /** Persist uploaded bytes in Postgres and return a stable public URL. */
 async function storeImageAndBuildUrl(req, stockId, file) {
     await saveStockImage(stockId, file.mimetype, file.buffer);
-    const host = req.get('host') || 'tradelink-2.onrender.com';
+    const host = req.get('host') || 'tradelink-backend-live.onrender.com';
     const baseUrl = `https://${host}`;
     return `${baseUrl}/stock-images/${stockId}?v=${Date.now()}`;
 }
@@ -89,5 +90,14 @@ export const deleteStockHandler = asyncHandler(async (req, res) => {
         return;
     }
     res.json({ success: true, data: { message: 'Stock item deleted successfully' } });
+});
+/** One-time: rewrite all image_url from old host to new host. */
+export const fixImageUrlsHandler = asyncHandler(async (_req, res) => {
+    const oldHost = 'tradelink-2.onrender.com';
+    const newHost = 'tradelink-backend-live.onrender.com';
+    const { rowCount } = await db.query(`UPDATE stockholder_inventory
+     SET image_url = REPLACE(image_url, $1, $2)
+     WHERE image_url LIKE '%' || $1 || '%'`, [oldHost, newHost]);
+    res.json({ success: true, data: { updated: rowCount ?? 0 } });
 });
 //# sourceMappingURL=stockController.js.map

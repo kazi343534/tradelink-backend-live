@@ -56,7 +56,7 @@ class SupplierResult {
       stockBadge: json['stockBadge'] as String? ?? 'In stock',
       inStock: json['inStock'] as bool? ?? true,
       isBestPrice: json['isBestPrice'] as bool? ?? false,
-      imageUrl: (json['imageUrl'] as String?)?.replaceFirst('http://tradelink-backend-live.onrender.com', 'https://tradelink-backend-live.onrender.com'),
+      imageUrl: (json['imageUrl'] as String?)?.replaceFirst('http://tradelink-backend-live.onrender.com', 'https://tradelink-backend-live.onrender.com').replaceFirst('tradelink-2.onrender.com', 'tradelink-backend-live.onrender.com'),
       stockId: json['stockId'] as String?,
       stockholderId: json['stockholderId'] as String? ?? json['stockholder_id'] as String? ?? '',
       productName: (json['productName'] as String?) ??

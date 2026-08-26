@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { publishStock, listStockHandler, updateStockHandler, deleteStockHandler } from '../controllers/stockController.js';
+import { publishStock, listStockHandler, updateStockHandler, deleteStockHandler, fixImageUrlsHandler } from '../controllers/stockController.js';
 import { getHomeStatsHandler } from '../controllers/homeStatsController.js';
 import { acceptDemandHandler, declineDemandHandler, cancelDemandHandler, } from '../controllers/demandController.js';
 import { getNotificationsHandler, getUnreadCountHandler, markOneReadHandler, markReadHandler, } from '../controllers/notificationController.js';
@@ -60,6 +60,7 @@ router.post('/suppliers/stock', requireSupplier, upload.single('image'), publish
 router.get('/suppliers/stock', requireSupplier, listStockHandler);
 router.patch('/suppliers/stock/:id', requireSupplier, updateStockHandler);
 router.delete('/suppliers/stock/:id', requireSupplier, deleteStockHandler);
+router.post('/suppliers/fix-image-urls', requireSupplier, fixImageUrlsHandler);
 router.get('/suppliers/home-stats', requireSupplier, getHomeStatsHandler);
 // ---- Demand endpoints ----
 router.patch('/demands/:id/cancel', cancelDemandHandler);
