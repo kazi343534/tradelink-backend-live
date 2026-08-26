@@ -17,7 +17,7 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 // sends no auth headers). Backed by Postgres, survives restarts.
 app.use('/stock-images', stockImageRoutes);
 
-const API_VERSION = '2026-08-26.2';
+const API_VERSION = '2026-08-26.3';
 
 app.get('/health', (_req, res) => {
   res.json({ success: true, message: 'TradeLink API is running', version: API_VERSION, ts: Date.now() });
