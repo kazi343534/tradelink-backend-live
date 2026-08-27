@@ -65,7 +65,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     if (userId != null && userId.isNotEmpty) {
       // Start phone notifications for logged-in users
-      NotificationService().requestPermission();
       NotificationService().start();
 
       if (role == 'shop_owner') {

@@ -4,8 +4,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 
-/// Shows phone-system notifications when new in-app notifications arrive.
-/// Polls the backend periodically and compares against previously seen IDs.
 class NotificationService {
   static final NotificationService _instance = NotificationService._();
   factory NotificationService() => _instance;
@@ -15,22 +13,50 @@ class NotificationService {
   Timer? _pollTimer;
   final Set<String> _seenIds = {};
   bool _initialized = false;
+  String _status = 'not started';
 
-  /// Start polling for new notifications and showing system notifications.
+  String get status => _status;
+
   Future<void> start() async {
     if (_initialized) return;
     _initialized = true;
+    _status = 'initializing...';
 
-    await _initNotifications();
+    try {
+      const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const iosSettings = DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
+      const settings = InitializationSettings(android: androidSettings, iOS: iosSettings);
+      await _plugin.initialize(settings);
+      _status = 'plugin ready';
+      _log('plugin initialized');
+    } catch (e) {
+      _status = 'init error: $e';
+      _log('INIT ERROR: $e');
+      return;
+    }
+
     await _loadSeenIds();
+    _log('loaded ${_seenIds.length} seen IDs');
 
-    // Show a test notification after 3s to verify the plugin works
+    // Test notification after 3s to prove plugin works
     Future.delayed(const Duration(seconds: 3), () async {
-      await _showLocal('TradeLink', 'Notifications are active');
+      try {
+        await _showLocal('TradeLink', 'Notifications active!');
+        _status = 'test shown, polling in 5s...';
+        _log('test notification sent');
+      } catch (e) {
+        _status = 'test error: $e';
+        _log('TEST ERROR: $e');
+      }
     });
 
-    // Delay first poll by 5s to let permission dialog complete
-    Future.delayed(const Duration(seconds: 5), () async {
+    // First poll after 8s
+    Future.delayed(const Duration(seconds: 8), () async {
+      _status = 'polling...';
       await _checkAndNotify();
       _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) => _checkAndNotify());
     });
@@ -41,35 +67,10 @@ class NotificationService {
     _pollTimer = null;
   }
 
-  Future<void> _initNotifications() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
-    );
-    const settings = InitializationSettings(android: androidSettings, iOS: iosSettings);
-    await _plugin.initialize(settings);
-    if (kDebugMode) print('[NotificationService] initialized');
-  }
-
-  /// Request notification permission (call after user logs in).
-  Future<void> requestPermission() async {
-    // iOS
-    final ios = _plugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
-    final iosResult = await ios?.requestPermissions(alert: true, badge: true, sound: true);
-    if (kDebugMode) print('[NotificationService] iOS permission: $iosResult');
-    // Android 13+
-    final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-    final androidResult = await android?.requestNotificationsPermission();
-    if (kDebugMode) print('[NotificationService] Android permission: $androidResult');
-  }
-
   Future<void> _loadSeenIds() async {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getStringList('notif_seen_ids') ?? [];
     _seenIds.addAll(stored);
-    if (kDebugMode) print('[NotificationService] loaded ${_seenIds.length} seen IDs');
   }
 
   Future<void> _persistSeenIds() async {
@@ -84,12 +85,13 @@ class NotificationService {
     try {
       final data = await ApiService.get('/notifications');
       if (data == null) {
-        if (kDebugMode) print('[NotificationService] poll: no data returned');
+        _log('API returned null');
+        _status = 'API null';
         return;
       }
 
       final notifications = List<Map<String, dynamic>>.from(data);
-      if (kDebugMode) print('[NotificationService] poll: ${notifications.length} notifications, ${_seenIds.length} already seen');
+      _log('poll: ${notifications.length} notifs, ${_seenIds.length} seen');
 
       int newCount = 0;
       for (final notif in notifications) {
@@ -102,15 +104,15 @@ class NotificationService {
         final title = notif['title'] as String? ?? 'TradeLink';
         final subtitle = notif['subtitle'] as String? ?? '';
 
-        if (kDebugMode) print('[NotificationService] NEW: $title - $subtitle');
         await _showLocal(title, subtitle);
       }
 
-      if (kDebugMode && newCount > 0) print('[NotificationService] showed $newCount new notifications');
-
+      _status = '$newCount new (poll ok)';
+      _log('$newCount new notifications shown');
       await _persistSeenIds();
     } catch (e) {
-      if (kDebugMode) print('[NotificationService] poll error: $e');
+      _status = 'poll error: $e';
+      _log('POLL ERROR: $e');
     }
   }
 
@@ -128,14 +130,24 @@ class NotificationService {
     );
     const details = NotificationDetails(
       android: androidDetails,
-      iOS: DarwinNotificationDetails(),
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
     );
 
     try {
       await _plugin.show(_notifCounter, title, body.isNotEmpty ? body : null, details);
-      if (kDebugMode) print('[NotificationService] shown: #$notifCounter $title');
+      _log('SHOW #$notifCounter: "$title"');
     } catch (e) {
-      if (kDebugMode) print('[NotificationService] show error: $e');
+      _log('SHOW ERROR: $e');
     }
+  }
+
+  void _log(String msg) {
+    // Always print so it's visible in release mode too
+    // ignore: avoid_print
+    print('[NotificationService] $msg');
   }
 }
