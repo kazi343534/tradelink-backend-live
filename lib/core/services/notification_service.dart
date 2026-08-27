@@ -139,7 +139,7 @@ class NotificationService {
 
     try {
       await _plugin.show(_notifCounter, title, body.isNotEmpty ? body : null, details);
-      _log('SHOW #$notifCounter: "$title"');
+      _log('SHOW #${_notifCounter}: "$title"');
     } catch (e) {
       _log('SHOW ERROR: $e');
     }
