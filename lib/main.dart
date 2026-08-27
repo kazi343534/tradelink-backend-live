@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'core/config/firebase_config.dart';
 import 'core/config/supabase_config.dart';
 import 'core/constants/app_colors.dart';
+import 'core/services/notification_service.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -63,6 +64,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
     if (!mounted) return;
 
     if (userId != null && userId.isNotEmpty) {
+      // Start phone notifications for logged-in users
+      NotificationService().requestPermission();
+      NotificationService().start();
+
       if (role == 'shop_owner') {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const ShopOwnerHomeScreen()),
